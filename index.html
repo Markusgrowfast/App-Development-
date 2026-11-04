@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Atemzeit</title>
+  <meta name="description" content="Einfache, geführte Atemübungen für Einsteiger">
+  <meta name="theme-color" content="#0f1530">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Atemzeit">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <div id="home"></div>
+    <div id="detail" hidden></div>
+    <div id="session" hidden>
+      <div class="session-top">
+        <button class="ghost" data-act="stop" aria-label="Übung beenden">✕</button>
+        <span id="sess-title"></span>
+        <span id="sess-remaining" aria-label="Restzeit"></span>
+      </div>
+      <div class="stage" aria-hidden="true">
+        <div class="guide"></div>
+        <div class="orb" id="orb"><span id="orb-num"></span></div>
+      </div>
+      <div class="phase" aria-live="polite">
+        <div id="phase-label"></div>
+        <div id="phase-sub"></div>
+        <div id="counter"></div>
+        <div id="cue"></div>
+      </div>
+      <div class="controls">
+        <button class="secondary" id="pause-btn" data-act="pause">Pause</button>
+      </div>
+    </div>
+    <div id="done" hidden></div>
+  </main>
+  <div id="safety" class="overlay" hidden></div>
+  <noscript><p style="padding:16px">Bitte JavaScript aktivieren, um Atemzeit zu nutzen.</p></noscript>
+  <script src="js/engine.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
