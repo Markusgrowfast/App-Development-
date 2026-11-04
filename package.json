@@ -1,0 +1,20 @@
+{
+  "name": "atemzeit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atemzeit – einfache Atemübungen für Einsteiger (PWA + Android/iOS via Capacitor)",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "sync": "npm run build:web && npx cap sync",
+    "serve": "python3 -m http.server 8000"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.0"
+  }
+}

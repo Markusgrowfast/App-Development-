@@ -1,0 +1,38 @@
+# Prüft, ob sich die iOS-App bauen lässt (für den Simulator, ohne Signatur).
+# Für TestFlight/App Store braucht es später ein Apple-Developer-Konto und Signatur-Zertifikate.
+name: iOS-App prüfen
+
+on:
+  push:
+    branches: [main, claude/breathwork-beginner-apps-moxpmk]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Web-App in die iOS-App übernehmen
+        run: |
+          npm run build:web
+          npx cap sync ios
+
+      - name: Für den Simulator bauen (ohne Signatur)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+          exit ${PIPESTATUS[0]}

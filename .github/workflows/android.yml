@@ -1,0 +1,64 @@
+# Baut die Android-App (APK) bei jedem Push und stellt sie als Download bereit:
+# https://github.com/<owner>/<repo>/releases/tag/android-test
+name: Android-App bauen
+
+on:
+  push:
+    branches: [main, claude/breathwork-beginner-apps-moxpmk]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Web-App in die Android-App übernehmen
+        run: |
+          npm run build:web
+          npx cap sync android
+
+      - name: APK bauen
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: APK umbenennen
+        run: cp android/app/build/outputs/apk/release/app-release.apk Atemzeit.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Atemzeit-android
+          path: Atemzeit.apk
+
+      - name: Download-Link aktualisieren (Release "android-test")
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete android-test --yes --cleanup-tag || true
+          gh release create android-test Atemzeit.apk \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Atemzeit für Android (Testversion ${{ github.run_number }})" \
+            --notes "Testversion für Familie und Testgruppe. Installation: Atemzeit.apk auf dem Android-Handy herunterladen, öffnen und die Installation aus dieser Quelle erlauben. Stand: ${GITHUB_SHA::7}"

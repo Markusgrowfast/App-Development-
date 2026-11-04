@@ -30,6 +30,9 @@ Offline-Modus und Installation brauchen `https://` oder `localhost`. Zum Veröff
 
 ## Aufbau
 ```
+android/, ios/          Native Projekte (Capacitor)
+assets/               Vorlagen für App-Icons und Startbildschirm
+scripts/build-web.mjs Kopiert die Web-App nach www/ für die nativen Apps
 index.html            Grundgerüst
 styles.css            Layout und Farben
 js/content.js         Übungen und Texte  ← hier neue Übungen eintragen
@@ -45,6 +48,29 @@ Neue Übung = neuer Eintrag in `js/content.js`, z. B.:
 { id: 'mein-atem', emoji: '🌊', title: '…', subtitle: '…', why: '…', steps: ['…'],
   rounds: 10, phases: [ { type: 'in', secs: 4, label: 'Einatmen' }, { type: 'out', secs: 6, label: 'Ausatmen' } ] }
 ```
+
+## Android & iOS (Capacitor)
+Die Web-App wird mit [Capacitor](https://capacitorjs.com) als native App verpackt – derselbe Code für Web, Android und iOS.
+
+**Android (Testversion für Familie/Testgruppe)**
+- Bei jedem Push baut GitHub Actions automatisch die APK (`.github/workflows/android.yml`).
+- Download: Releases → „android-test“ → `Atemzeit.apk`
+  (https://github.com/Markusgrowfast/App-Development-/releases/tag/android-test)
+- Installation: APK auf dem Handy öffnen und „Installation aus dieser Quelle erlauben“ bestätigen.
+- Signiert mit einem **Test-Schlüssel** (`android/app/test-signing.keystore`, Passwort `atemzeit-test`). Der ist bewusst öffentlich und nur für Tests gedacht. Für Google Play einen eigenen, geheimen Schlüssel erzeugen und über die Umgebungsvariablen `ATEMZEIT_KEYSTORE`, `ATEMZEIT_KEYSTORE_PASSWORD`, `ATEMZEIT_KEY_ALIAS`, `ATEMZEIT_KEY_PASSWORD` setzen.
+
+**iOS**
+- `.github/workflows/ios.yml` prüft nur, ob die App für den Simulator baut.
+- Zum Installieren auf iPhones (TestFlight/App Store) braucht es ein Apple-Developer-Konto und Signatur-Zertifikate. Bis dahin: Web-App über Safari → „Zum Home-Bildschirm“.
+
+**Lokal arbeiten**
+```bash
+npm install
+npm run sync          # Web-App nach www/ kopieren und in android/ + ios/ übernehmen
+npx cap open android  # Android Studio (benötigt Android SDK)
+npx cap open ios      # Xcode (nur auf dem Mac)
+```
+App-Icons/Startbildschirm: Vorlagen in `assets/`, neu erzeugen mit `npx @capacitor/assets generate`.
 
 ## Hinweis
 Atemzeit ist kein Medizinprodukt und ersetzt keine ärztliche oder psychotherapeutische Behandlung.

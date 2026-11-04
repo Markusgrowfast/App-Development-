@@ -21,6 +21,10 @@
     }
   };
 
+  // Läuft die App als native Android-/iOS-App (Capacitor)?
+  var NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  var CAN_VIBRATE = NATIVE || !!navigator.vibrate;
+
   var settings = Object.assign({ sound: true, vibrate: true }, store.get('settings', {}));
 
   // ---------- Übungen registrieren ----------
@@ -94,7 +98,14 @@
       o.start(t); o.stop(t + dur + 0.05);
     },
     buzz: function (pattern) {
-      if (!settings.vibrate || !navigator.vibrate) return;
+      if (!settings.vibrate) return;
+      // In der nativen App (Android/iOS): echte Haptik über das Capacitor-Plugin
+      var H = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+      if (H) {
+        H.impact({ style: Array.isArray(pattern) ? 'MEDIUM' : 'LIGHT' }).catch(function () {});
+        return;
+      }
+      if (!navigator.vibrate) return;
       try { navigator.vibrate(pattern); } catch (e) { /* nicht unterstützt */ }
     }
   };
@@ -198,7 +209,7 @@
     if (ex.note) html += '<div class="panel note">' + ex.note + '</div>';
     html += '<div class="toggles">' +
       '<label class="toggle"><input type="checkbox" data-setting="sound"' + (settings.sound ? ' checked' : '') + '> Töne</label>' +
-      (navigator.vibrate ? '<label class="toggle"><input type="checkbox" data-setting="vibrate"' + (settings.vibrate ? ' checked' : '') + '> Vibration</label>' : '') +
+      (CAN_VIBRATE ? '<label class="toggle"><input type="checkbox" data-setting="vibrate"' + (settings.vibrate ? ' checked' : '') + '> Vibration</label>' : '') +
       '</div>';
     html += '<button class="primary big" data-act="start">Starten</button>';
     $('#detail').innerHTML = html;
@@ -401,7 +412,8 @@
   route();
   if (C.safety.mode === 'info' && !store.get('safetySeen', false)) showSafety(null);
 
-  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+  // Offline-Cache nur für die Web-Version; die native App hat alle Dateien schon an Bord
+  if (!NATIVE && 'serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
   }
 })();
