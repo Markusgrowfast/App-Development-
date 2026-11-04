@@ -1,0 +1,13 @@
+{
+  "appId": "de.atemzeit.app",
+  "appName": "Atemzeit",
+  "webDir": "www",
+  "backgroundColor": "#0f1530",
+  "android": {
+    "backgroundColor": "#0f1530"
+  },
+  "ios": {
+    "backgroundColor": "#0f1530",
+    "contentInset": "never"
+  }
+}
