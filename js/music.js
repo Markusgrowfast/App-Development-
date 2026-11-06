@@ -55,7 +55,7 @@
       n.comp.connect(ctx.destination);
       n.master = ctx.createGain();
       n.master.gain.setValueAtTime(0.0001, t);
-      n.master.gain.exponentialRampToValueAtTime(cfg.volume, t + (cfg.fadeIn || 6));
+      n.master.gain.exponentialRampToValueAtTime(Math.max(cfg.volume, 0.0001), t + (cfg.fadeIn || 6));
       n.master.connect(n.comp);
 
       // Hall
@@ -77,7 +77,7 @@
       n.sources = [lfo];
 
       // Meeresrauschen
-      if (cfg.waves) {
+      if (cfg.waves != null) { // immer anlegen, damit der Regler live wirkt
         var src = ctx.createBufferSource();
         src.buffer = pinkNoise(ctx, 6); src.loop = true;
         n.waveFilter = ctx.createBiquadFilter();
@@ -106,8 +106,8 @@
         n.chord++;
         n.nextChordAt += cfg.chordSecs;
       }
-      while (cfg.chimes && n.nextChimeAt < until) {
-        this._chime(n.nextChimeAt);
+      while (n.nextChimeAt < until) {
+        if (cfg.chimes > 0) this._chime(n.nextChimeAt);
         n.nextChimeAt += (cfg.chimeEvery || 4) + Math.random() * (cfg.chimeJitter || 5);
       }
     },
@@ -169,6 +169,13 @@
       n.waveFilter.frequency.setTargetAtTime(350 + 1100 * level, t, 0.3);
     },
 
+    // Einstellungen live ändern (Regler "Klang anpassen"); Akkorde/Grundton wirken ab dem nächsten Akkord
+    update: function (cfg) {
+      var n = this.n; if (!n) return;
+      Object.assign(n.cfg, cfg);
+      if (!n.paused) n.master.gain.setTargetAtTime(Math.max(n.cfg.volume, 0.0001), n.ctx.currentTime, 0.3);
+    },
+
     pause: function () {
       var n = this.n; if (!n) return;
       n.paused = true;
@@ -178,7 +185,7 @@
     resume: function () {
       var n = this.n; if (!n) return;
       n.paused = false;
-      n.master.gain.setTargetAtTime(n.cfg.volume, n.ctx.currentTime, 0.8);
+      n.master.gain.setTargetAtTime(Math.max(n.cfg.volume, 0.0001), n.ctx.currentTime, 0.8);
     },
 
     stop: function (fade) {

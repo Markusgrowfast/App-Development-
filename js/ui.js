@@ -114,8 +114,38 @@
     }
   };
   // Signaltöne harmonisch zum Grundton der Klangebene (Quinte, Quarte, große Terz …)
-  var BASE = (C.ambient && C.ambient.carrier) || 430;
-  var TONES = { in: BASE * 1.5, hold: BASE * 4 / 3, holdOut: BASE * 4 / 3, out: BASE * 1.25, rest: BASE * 0.75 };
+  // ---------- Persönliche Klang-Einstellungen (Regler, pro Gerät gespeichert) ----------
+  var KDEF = {
+    binVol: 50, musicVol: 50, waves: 50, chimes: 50,
+    carrier: (C.ambient && C.ambient.carrier) || 430,
+    beat: (C.ambient && C.ambient.beat) || 6,
+    mood: (C.music && C.music.defaultMood) || 'sanft'
+  };
+  var klang = Object.assign({}, KDEF, store.get('klang', {}));
+  function ambientCfg(ex) {
+    var a = Object.assign({}, C.ambient, ex && ex.ambient);
+    a.carrier = klang.carrier; a.beat = klang.beat;
+    a.volume = (C.ambient.volume || 0.06) * klang.binVol / 50;
+    return a;
+  }
+  function musicCfg(ex) {
+    var m = Object.assign({}, C.music, ex && ex.music);
+    m.base = klang.carrier;
+    m.volume = Math.min(1, m.volume * klang.musicVol / 50);
+    m.waves = m.waves * klang.waves / 50;
+    m.chimes = m.chimes * klang.chimes / 50;
+    var mood = m.moods && m.moods[klang.mood];
+    if (mood) m.chords = mood.chords;
+    return m;
+  }
+
+  // Signaltöne harmonisch zum Grundton (Quinte, Quarte, große Terz …)
+  var BASE = klang.carrier, TONES = {};
+  function tuneTones() {
+    BASE = klang.carrier;
+    TONES = { in: BASE * 1.5, hold: BASE * 4 / 3, holdOut: BASE * 4 / 3, out: BASE * 1.25, rest: BASE * 0.75 };
+  }
+  tuneTones();
 
   // ---------- Klangebene: binaurale Beats ----------
   // Links Grundton, rechts Grundton + Differenz -> mit Kopfhörern entsteht ein wahrgenommener Puls (Differenzfrequenz).
@@ -151,7 +181,7 @@
         mk(cfg.carrier + cfg.beat, 1, 1),         // rechts
         mk(cfg.carrier / 2, cfg.warmth || 0, 'both') // warmer Grundton eine Oktave tiefer
       ];
-      this.vol = cfg.volume || 0.06;
+      this.vol = Math.max(cfg.volume, 0.0002);
       master.gain.exponentialRampToValueAtTime(this.vol * 0.85, t + (cfg.fadeIn || 4));
       this.nodes = { master: master, oscs: oscs, merger: merger, readyAt: t + (cfg.fadeIn || 4), lastT: 0 };
     },
@@ -164,6 +194,15 @@
       if (ctx.currentTime < n.readyAt || ctx.currentTime - n.lastT < 0.12) return;
       n.lastT = ctx.currentTime;
       n.master.gain.setTargetAtTime(this.vol * (0.75 + 0.25 * level), ctx.currentTime, 0.25);
+    },
+    update: function (cfg) {
+      var n = this.nodes; if (!n) return;
+      var t = Cue.ctx.currentTime;
+      n.oscs[0].frequency.setTargetAtTime(cfg.carrier, t, 0.1);
+      n.oscs[1].frequency.setTargetAtTime(cfg.carrier + cfg.beat, t, 0.1);
+      n.oscs[2].frequency.setTargetAtTime(cfg.carrier / 2, t, 0.1);
+      this.vol = Math.max(cfg.volume, 0.0002);
+      if (!this.paused) n.master.gain.setTargetAtTime(this.vol * 0.85, t, 0.2);
     },
     pause: function () {
       if (!this.nodes) return;
@@ -238,7 +277,8 @@
       html += '</div></section>';
     });
 
-    html += '<footer class="foot"><button class="link" data-act="safety">Sicherheitshinweise</button>' +
+    html += '<footer class="foot">' + (C.ambient ? '<button class="link" data-act="klang">Klang anpassen</button> · ' : '') +
+      '<button class="link" data-act="safety">Sicherheitshinweise</button>' +
       '<p class="muted small">' + C.disclaimer + '</p></footer>';
     $('#home').innerHTML = html;
   }
@@ -296,7 +336,8 @@
       '<label class="toggle"><input type="checkbox" data-setting="sound"' + (settings.sound ? ' checked' : '') + '> Signaltöne</label>' +
       (CAN_VIBRATE ? '<label class="toggle"><input type="checkbox" data-setting="vibrate"' + (settings.vibrate ? ' checked' : '') + '> Vibration</label>' : '') +
       '</div>';
-    if (C.ambient) html += '<p class="muted small center">' + C.ambient.hint + '</p>';
+    if (C.ambient) html += '<p class="muted small center">' + C.ambient.hint + '</p>' +
+      '<button class="secondary" data-act="klang">\uD83C\uDF9B\uFE0F Klang anpassen</button>';
     html += '<button class="primary big" data-act="start">Starten</button>';
     $('#detail').innerHTML = html;
   }
@@ -308,10 +349,10 @@
   function startSession() {
     var ex = withVariant(current.ex, current.variant);
     Cue.init();
-    Ambient.start(Object.assign({}, C.ambient, ex.ambient));
-    if (settings.music && C.music && window.AtemMusic && Cue.ctx) {
-      AtemMusic.start(Cue.ctx, Object.assign({ base: BASE }, C.music, ex.music));
-    }
+    stopPreview(0);
+    tuneTones();
+    Ambient.start(ambientCfg(ex));
+    if (settings.music && C.music && window.AtemMusic && Cue.ctx) AtemMusic.start(Cue.ctx, musicCfg(ex));
     keepAwake(true);
     var orb = $('#orb'), num = $('#orb-num');
     $('#sess-title').textContent = current.ex.title;
@@ -434,6 +475,97 @@
     ok.focus();
   }
 
+  // ---------- Klang anpassen (Regler + Probehören) ----------
+  var klangOpen = false, preview = null;
+
+  function beatName(b) {
+    if (b < 4) return 'Delta · sehr langsam';
+    if (b < 8) return 'Theta · langsam';
+    if (b <= 13) return 'Alpha · mittel';
+    return 'Beta · schnell';
+  }
+  function fmtK(k, v) {
+    if (k === 'carrier') return v + ' Hz';
+    if (k === 'beat') return v + ' Hz · ' + beatName(v);
+    return v + ' %';
+  }
+  function slider(k, label, min, max, step) {
+    return '<label class="slider"><span class="slider-head"><span>' + label + '</span><output id="out-' + k + '">' + fmtK(k, klang[k]) +
+      '</output></span><input type="range" data-k="' + k + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + klang[k] + '"></label>';
+  }
+
+  function showKlang() {
+    klangOpen = true;
+    var moods = (C.music && C.music.moods) || {};
+    var html = '<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="klang-title"><h2 id="klang-title">🎛️ Klang anpassen</h2>' +
+      '<p class="muted small">Probier aus, was sich für dich gut anfühlt – die Wirkung ist individuell. Wird auf diesem Gerät gespeichert.</p>' +
+      '<button class="primary" data-act="preview" id="preview-btn">' + (preview ? '⏸ Probehören stoppen' : '▶︎ Probehören') + '</button>' +
+      '<h3 class="sheet-sub">Binaural 🎧</h3>' +
+      slider('binVol', 'Lautstärke', 0, 100, 5) +
+      slider('carrier', 'Grundton', 380, 480, 1) +
+      slider('beat', 'Puls', 1, 14, 0.5);
+    if (C.music) {
+      html += '<h3 class="sheet-sub">Musik 🎵</h3>' +
+        slider('musicVol', 'Lautstärke', 0, 100, 5) +
+        slider('waves', 'Meeresrauschen', 0, 100, 5) +
+        slider('chimes', 'Klangtropfen', 0, 100, 5) +
+        '<div class="slider-head"><span>Stimmung der Akkorde</span></div><div class="seg">' +
+        Object.keys(moods).map(function (id) {
+          return '<button data-mood-k="' + id + '" class="' + (klang.mood === id ? 'on' : '') + '"><strong>' + moods[id].name + '</strong><span>' + moods[id].hint + '</span></button>';
+        }).join('') + '</div>';
+    }
+    html += '<p class="muted small">Tipp: Binaural wirkt nur mit Kopfhörern. Ohne Kopfhörer hörst du einen sanft schwebenden Ton.</p>' +
+      '<div class="sheet-actions"><button class="secondary" data-act="resetKlang">Zurücksetzen</button><button class="primary" data-act="closeKlang">Fertig</button></div></div>';
+    var ov = $('#safety');
+    ov.innerHTML = html;
+    ov.hidden = false;
+  }
+
+  // Regler-Änderungen sofort übernehmen (auch während einer laufenden Übung oder beim Probehören)
+  function applyKlang() {
+    store.set('klang', klang);
+    tuneTones();
+    Ambient.update(ambientCfg(current && current.ex));
+    if (window.AtemMusic) AtemMusic.update(musicCfg(current && current.ex));
+  }
+
+  function togglePreview() { if (preview) stopPreview(); else startPreview(); showKlang(); }
+  function startPreview() {
+    if (session) return; // während einer Übung hört man die Änderungen ohnehin direkt
+    Cue.init();
+    Ambient.start(Object.assign(ambientCfg(), { fadeIn: 1.5 }));
+    if (settings.music && C.music && window.AtemMusic && Cue.ctx) AtemMusic.start(Cue.ctx, Object.assign(musicCfg(), { fadeIn: 2 }));
+    // sanftes Probe-"Atmen" (4 s ein, 6 s aus), damit Meer und Lautstärke mitschwingen
+    var t0 = Date.now();
+    preview = setInterval(function () {
+      var ph = ((Date.now() - t0) / 1000) % 10;
+      var lvl = ph < 4 ? 0.5 - 0.5 * Math.cos(Math.PI * ph / 4) : 0.5 + 0.5 * Math.cos(Math.PI * (ph - 4) / 6);
+      Ambient.breathe(lvl);
+      if (window.AtemMusic) AtemMusic.breathe(lvl);
+    }, 150);
+  }
+  function stopPreview(fade) {
+    if (!preview) return;
+    clearInterval(preview);
+    preview = null;
+    if (!session) { Ambient.stop(fade); if (window.AtemMusic) AtemMusic.stop(fade); }
+  }
+
+  document.addEventListener('input', function (e) {
+    var k = e.target.dataset && e.target.dataset.k;
+    if (!k) return;
+    klang[k] = +e.target.value;
+    var o = $('#out-' + k); if (o) o.textContent = fmtK(k, klang[k]);
+    applyKlang();
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-mood-k]');
+    if (!t) return;
+    klang.mood = t.dataset.moodK;
+    document.querySelectorAll('[data-mood-k]').forEach(function (b) { b.classList.toggle('on', b === t); });
+    applyKlang();
+  });
+
   // ---------- Routing ----------
   function history_push(hash) {
     try { history.pushState(null, '', hash); } catch (e) { location.hash = hash; }
@@ -483,6 +615,10 @@
       case 'safety': showSafety(null); break;
       case 'closeSafety': $('#safety').hidden = true; break;
       case 'resetProgram': store.set('programDone', []); renderHome(); break;
+      case 'klang': showKlang(); break;
+      case 'closeKlang': stopPreview(); klangOpen = false; $('#safety').hidden = true; if (screen === 'detail') renderDetail(); break;
+      case 'preview': togglePreview(); break;
+      case 'resetKlang': klang = Object.assign({}, KDEF); store.set('klang', klang); showKlang(); applyKlang(); break;
     }
   });
 
@@ -498,7 +634,7 @@
     if (document.hidden && session && session.running) togglePause();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !$('#safety').hidden && C.safety.mode === 'gate') $('#safety').hidden = true;
+    if (e.key === 'Escape' && !$('#safety').hidden && (C.safety.mode === 'gate' || klangOpen)) { stopPreview(); klangOpen = false; $('#safety').hidden = true; }
     if (e.key === ' ' && screen === 'session') { e.preventDefault(); togglePause(); }
   });
 

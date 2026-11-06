@@ -16,6 +16,7 @@ Geplante Module: Wind Down (Einschlafen), Re-Energize, Daily Balance mit 7-Tage-
 - Atemkreis, der mit dem Atem wächst und schrumpft, Countdown pro Phase
 - Klangebene: binaurale Beats (links 430 Hz, rechts 436 Hz → 6 Hz Differenz, plus weicher Ton bei 215 Hz), live erzeugt per Web Audio, atmet leicht mit; Einstellungen in `js/content.js` → `ambient`
 - Chill-out-Musik, live erzeugt (`js/music.js`): Akkord-Flächen in A = 430 Hz, Meeresrauschen, das mit dem Atem rollt, Klangtropfen, Hall; Einstellungen in `js/content.js` → `music`
+- „Klang anpassen“: Regler für Binaural (Lautstärke, Grundton 380–480 Hz, Puls 1–14 Hz) und Musik (Lautstärke, Meer, Klangtropfen, Stimmung Sanft/Dunkel/Hell), mit Probehören; pro Gerät gespeichert
 - Signaltöne harmonisch zum Grundton, und Vibration (Vibration nur, wo der Browser sie unterstützt, z. B. Android/Chrome – nicht auf iOS)
 - Tempo „Leicht“ / „Normal“, Pause, automatische Pause beim App-Wechsel, Bildschirm bleibt an (falls unterstützt)
 - Stimmungs-Check nach jeder Übung, Serie („Tage in Folge“)

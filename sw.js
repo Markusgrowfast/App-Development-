@@ -1,6 +1,6 @@
 // Offline-Unterstützung: zeigt sofort die gespeicherte Version und aktualisiert im Hintergrund.
 // Bei größeren Änderungen VERSION erhöhen, damit alte Caches gelöscht werden.
-var VERSION = 'atemzeit-v3';
+var VERSION = 'atemzeit-v4';
 var ASSETS = ['./', 'index.html', 'styles.css', 'js/engine.js', 'js/content.js', 'js/music.js', 'js/ui.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 

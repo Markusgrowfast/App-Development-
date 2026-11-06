@@ -167,3 +167,10 @@ body.night {
   --border: #181b30;
   --accent: #4d7f78;
 }
+
+/* Klang anpassen */
+.sheet-sub { margin-top: 20px; }
+.slider { display: block; margin: 12px 0; }
+.slider-head { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; margin: 10px 0 4px; }
+.slider-head output { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.slider input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }

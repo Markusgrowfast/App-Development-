@@ -35,6 +35,13 @@ window.APP_CONTENT = {
     chordSecs: 12,    // Dauer eines Akkords
     // Akkorde in Halbtönen relativ zu A: Fmaj7 → Cmaj7 → Am7 → Em7
     chords: [[-4, 0, 3, 7], [3, 7, 10, 14], [0, 3, 7, 10], [-5, -2, 2, 5]],
+    // Auswahl "Stimmung der Akkorde" unter "Klang anpassen"
+    defaultMood: 'sanft',
+    moods: {
+      sanft: { name: 'Sanft', hint: 'träumerisch', chords: [[-4, 0, 3, 7], [3, 7, 10, 14], [0, 3, 7, 10], [-5, -2, 2, 5]] },   // Fmaj7 Cmaj7 Am7 Em7
+      dunkel: { name: 'Dunkel', hint: 'tief, ruhig', chords: [[0, 3, 7, 10], [-4, 0, 3, 7], [-7, -4, 0, 3], [-5, -2, 2, 5]] },  // Am7 Fmaj7 Dm7 Em7
+      hell: { name: 'Hell', hint: 'warm, offen', chords: [[3, 7, 10, 14], [-4, 0, 3, 7], [-2, 2, 5, 7], [0, 3, 7, 10]] }        // Cmaj7 Fmaj7 G6 Am7
+    },
     pad: 0.03,        // Lautstärke der Akkord-Flächen
     sub: 0.05,        // tiefer Grundton
     waves: 0.5,       // Meeresrauschen (0 = aus); folgt dem Atem
