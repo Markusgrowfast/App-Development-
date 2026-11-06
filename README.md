@@ -14,7 +14,8 @@ Geplante Module: Wind Down (Einschlafen), Re-Energize, Daily Balance mit 7-Tage-
 
 ## Funktionen
 - Atemkreis, der mit dem Atem wächst und schrumpft, Countdown pro Phase
-- Sanfte Töne und Vibration (Vibration nur, wo der Browser sie unterstützt, z. B. Android/Chrome – nicht auf iOS)
+- Klangebene: binaurale Beats (links 430 Hz, rechts 436 Hz → 6 Hz Differenz, plus weicher Ton bei 215 Hz), live erzeugt per Web Audio, atmet leicht mit; Einstellungen in `js/content.js` → `ambient`
+- Signaltöne harmonisch zum Grundton, und Vibration (Vibration nur, wo der Browser sie unterstützt, z. B. Android/Chrome – nicht auf iOS)
 - Tempo „Leicht“ / „Normal“, Pause, automatische Pause beim App-Wechsel, Bildschirm bleibt an (falls unterstützt)
 - Stimmungs-Check nach jeder Übung, Serie („Tage in Folge“)
 - Sicherheitshinweise beim ersten Start

@@ -25,7 +25,7 @@
   var NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   var CAN_VIBRATE = NATIVE || !!navigator.vibrate;
 
-  var settings = Object.assign({ sound: true, vibrate: true }, store.get('settings', {}));
+  var settings = Object.assign({ sound: true, vibrate: true, binaural: true }, store.get('settings', {}));
 
   // ---------- Übungen registrieren ----------
   var exercises = {};
@@ -79,7 +79,11 @@
     ctx: null,
     init: function () {
       try {
-        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          // iPhone: Klang auch bei aktiviertem Stummschalter abspielen (Audio Session API, neuere Safari-Versionen)
+          try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* nicht unterstützt */ }
+        }
         if (this.ctx.state === 'suspended') this.ctx.resume();
       } catch (e) { this.ctx = null; }
     },
@@ -109,7 +113,86 @@
       try { navigator.vibrate(pattern); } catch (e) { /* nicht unterstützt */ }
     }
   };
-  var TONES = { in: 523.25, hold: 440, holdOut: 440, out: 392, rest: 329.63 };
+  // Signaltöne harmonisch zum Grundton der Klangebene (Quinte, Quarte, große Terz …)
+  var BASE = (C.ambient && C.ambient.carrier) || 430;
+  var TONES = { in: BASE * 1.5, hold: BASE * 4 / 3, holdOut: BASE * 4 / 3, out: BASE * 1.25, rest: BASE * 0.75 };
+
+  // ---------- Klangebene: binaurale Beats ----------
+  // Links Grundton, rechts Grundton + Differenz -> mit Kopfhörern entsteht ein wahrgenommener Puls (Differenzfrequenz).
+  // Weitere Ebenen (z. B. Chill-out-Musik) können später hier ergänzt werden.
+  var Ambient = {
+    nodes: null,
+    vol: 0,
+    start: function (cfg) {
+      this.stop(0);
+      var ctx = Cue.ctx;
+      if (!ctx || !cfg || !settings.binaural) return;
+      var t = ctx.currentTime;
+      var master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, t);
+      master.connect(ctx.destination);
+
+      var merger = ctx.createChannelMerger(2);
+      merger.connect(master);
+      var mk = function (freq, gain, channel) {
+        var o = ctx.createOscillator();
+        var g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.value = gain;
+        o.connect(g);
+        if (channel === 'both') { g.connect(merger, 0, 0); g.connect(merger, 0, 1); }
+        else g.connect(merger, 0, channel);
+        o.start(t);
+        return o;
+      };
+      var oscs = [
+        mk(cfg.carrier, 1, 0),                    // links
+        mk(cfg.carrier + cfg.beat, 1, 1),         // rechts
+        mk(cfg.carrier / 2, cfg.warmth || 0, 'both') // warmer Grundton eine Oktave tiefer
+      ];
+      this.vol = cfg.volume || 0.06;
+      master.gain.exponentialRampToValueAtTime(this.vol * 0.85, t + (cfg.fadeIn || 4));
+      this.nodes = { master: master, oscs: oscs, merger: merger, readyAt: t + (cfg.fadeIn || 4), lastT: 0 };
+    },
+    // leichtes Mitatmen der Lautstärke mit dem Atemkreis
+    breathe: function (level) {
+      var n = this.nodes;
+      if (!n || this.paused) return;
+      var ctx = Cue.ctx;
+      // erst nach dem Einblenden, und höchstens ~8-mal pro Sekunde
+      if (ctx.currentTime < n.readyAt || ctx.currentTime - n.lastT < 0.12) return;
+      n.lastT = ctx.currentTime;
+      n.master.gain.setTargetAtTime(this.vol * (0.75 + 0.25 * level), ctx.currentTime, 0.25);
+    },
+    pause: function () {
+      if (!this.nodes) return;
+      this.paused = true;
+      this.nodes.master.gain.setTargetAtTime(0.0001, Cue.ctx.currentTime, 0.3);
+    },
+    resume: function () {
+      if (!this.nodes) return;
+      this.paused = false;
+      this.nodes.readyAt = Cue.ctx.currentTime + 1.5;
+      this.nodes.master.gain.setTargetAtTime(this.vol * 0.85, Cue.ctx.currentTime, 0.6);
+    },
+    stop: function (fade) {
+      var n = this.nodes;
+      if (!n) return;
+      this.nodes = null;
+      this.paused = false;
+      var ctx = Cue.ctx;
+      var f = fade == null ? 1.5 : fade;
+      var t = ctx.currentTime;
+      try {
+        n.master.gain.cancelScheduledValues(t);
+        n.master.gain.setValueAtTime(Math.max(n.master.gain.value, 0.0001), t);
+        n.master.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(f, 0.05));
+        n.oscs.forEach(function (o) { o.stop(t + Math.max(f, 0.05) + 0.1); });
+      } catch (e) { /* bereits beendet */ }
+      setTimeout(function () { try { n.master.disconnect(); } catch (e) {} }, (f + 0.5) * 1000);
+    }
+  };
 
   // ---------- Bildschirm wach halten ----------
   var wakeLock = null;
@@ -208,9 +291,11 @@
     }
     if (ex.note) html += '<div class="panel note">' + ex.note + '</div>';
     html += '<div class="toggles">' +
-      '<label class="toggle"><input type="checkbox" data-setting="sound"' + (settings.sound ? ' checked' : '') + '> Töne</label>' +
+      (C.ambient ? '<label class="toggle"><input type="checkbox" data-setting="binaural"' + (settings.binaural ? ' checked' : '') + '> Klang \uD83C\uDFA7</label>' : '') +
+      '<label class="toggle"><input type="checkbox" data-setting="sound"' + (settings.sound ? ' checked' : '') + '> Signaltöne</label>' +
       (CAN_VIBRATE ? '<label class="toggle"><input type="checkbox" data-setting="vibrate"' + (settings.vibrate ? ' checked' : '') + '> Vibration</label>' : '') +
       '</div>';
+    if (C.ambient) html += '<p class="muted small center">' + C.ambient.hint + '</p>';
     html += '<button class="primary big" data-act="start">Starten</button>';
     $('#detail').innerHTML = html;
   }
@@ -222,6 +307,7 @@
   function startSession() {
     var ex = withVariant(current.ex, current.variant);
     Cue.init();
+    Ambient.start(Object.assign({}, C.ambient, ex.ambient));
     keepAwake(true);
     var orb = $('#orb'), num = $('#orb-num');
     $('#sess-title').textContent = current.ex.title;
@@ -254,6 +340,7 @@
         var st = f.step;
         if (reduceMotion) orb.style.opacity = (0.35 + 0.65 * f.level).toFixed(3);
         else orb.style.transform = 'scale(' + (0.42 + 0.58 * f.level).toFixed(4) + ')';
+        Ambient.breathe(f.level);
         var n;
         if (st.type === 'prep') n = Math.ceil(f.phaseRemaining);
         else if (ex.countdown) n = st.rounds - st.round + 1;
@@ -267,9 +354,10 @@
     session.start();
   }
 
-  function stopSession() {
+  function stopSession(fade) {
     if (session) session.stop();
     session = null;
+    Ambient.stop(fade);
     keepAwake(false);
     document.body.classList.remove('dim');
     delete document.body.dataset.phase;
@@ -277,16 +365,16 @@
 
   function togglePause() {
     if (!session) return;
-    if (session.running) { session.pause(); $('#pause-btn').textContent = 'Weiter'; $('#phase-sub').textContent = 'Pausiert'; }
-    else { Cue.init(); session.resume(); $('#pause-btn').textContent = 'Pause'; }
+    if (session.running) { session.pause(); Ambient.pause(); $('#pause-btn').textContent = 'Weiter'; $('#phase-sub').textContent = 'Pausiert'; }
+    else { Cue.init(); session.resume(); Ambient.resume(); $('#pause-btn').textContent = 'Pause'; }
   }
 
   var lastEntry = null;
   function finishSession() {
     var ex = current.ex;
-    stopSession();
-    Cue.tone(392, 1.2, 0.1);
-    setTimeout(function () { Cue.tone(523.25, 1.6, 0.08); }, 250);
+    stopSession(4); // Klang am Ende langsam ausklingen lassen
+    Cue.tone(BASE, 1.6, 0.1);
+    setTimeout(function () { Cue.tone(BASE * 1.5, 2, 0.07); }, 300);
 
     var h = history();
     lastEntry = { day: dayKey(), ts: Date.now(), id: ex.id, mood: null };

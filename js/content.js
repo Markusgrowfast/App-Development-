@@ -19,6 +19,15 @@ window.APP_CONTENT = {
   storageKey: 'atemzeit',
   disclaimer: 'Atemzeit ist kein Medizinprodukt und ersetzt keine ärztliche oder psychotherapeutische Behandlung.',
   endText: 'Gönn dir noch einen Moment, bevor du weitermachst.',
+  // Klangebene während der Übungen (pro Übung mit "ambient: {...}" überschreibbar)
+  ambient: {
+    carrier: 430,   // Grundton in Hz (linkes Ohr)
+    beat: 6,        // Differenz in Hz: rechtes Ohr = 436 Hz -> wahrgenommener Puls von 6 Hz
+    warmth: 0.35,   // Anteil des weichen Tons eine Oktave tiefer (215 Hz)
+    volume: 0.06,   // Gesamtlautstärke (0–1), bewusst leise
+    fadeIn: 4,      // Einblenden in Sekunden
+    hint: 'Klang: sanfter binauraler Ton (430 Hz). Wirkt am besten mit Kopfhörern – bitte nicht zu laut.'
+  },
   moods: [
     { emoji: '😣', label: 'noch angespannt' },
     { emoji: '😐', label: 'etwas ruhiger' },
