@@ -26,7 +26,22 @@ window.APP_CONTENT = {
     warmth: 0.35,   // Anteil des weichen Tons eine Oktave tiefer (215 Hz)
     volume: 0.06,   // Gesamtlautstärke (0–1), bewusst leise
     fadeIn: 4,      // Einblenden in Sekunden
-    hint: 'Klang: sanfter binauraler Ton (430 Hz). Wirkt am besten mit Kopfhörern – bitte nicht zu laut.'
+    hint: 'Binaural: sanfter Ton um 430 Hz · Musik: ruhige Klangflächen mit Meeresrauschen. Am schönsten mit Kopfhörern – bitte nicht zu laut.'
+  },
+  // Chill-out-Untermalung, live erzeugt und auf den Grundton gestimmt (A = 430 Hz)
+  music: {
+    volume: 0.5,      // Gesamtlautstärke der Musik (0–1)
+    fadeIn: 6,        // Einblenden in Sekunden
+    chordSecs: 12,    // Dauer eines Akkords
+    // Akkorde in Halbtönen relativ zu A: Fmaj7 → Cmaj7 → Am7 → Em7
+    chords: [[-4, 0, 3, 7], [3, 7, 10, 14], [0, 3, 7, 10], [-5, -2, 2, 5]],
+    pad: 0.03,        // Lautstärke der Akkord-Flächen
+    sub: 0.05,        // tiefer Grundton
+    waves: 0.5,       // Meeresrauschen (0 = aus); folgt dem Atem
+    chimes: 0.045,    // Klangtropfen (0 = aus)
+    chimeScale: [0, 3, 5, 7, 10, 12, 15], // A-Moll-Pentatonik – klingt nie schief
+    chimeEvery: 4, chimeJitter: 5,
+    reverbSecs: 4, reverbMix: 0.7
   },
   moods: [
     { emoji: '😣', label: 'noch angespannt' },

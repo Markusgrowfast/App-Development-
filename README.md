@@ -15,6 +15,7 @@ Geplante Module: Wind Down (Einschlafen), Re-Energize, Daily Balance mit 7-Tage-
 ## Funktionen
 - Atemkreis, der mit dem Atem wächst und schrumpft, Countdown pro Phase
 - Klangebene: binaurale Beats (links 430 Hz, rechts 436 Hz → 6 Hz Differenz, plus weicher Ton bei 215 Hz), live erzeugt per Web Audio, atmet leicht mit; Einstellungen in `js/content.js` → `ambient`
+- Chill-out-Musik, live erzeugt (`js/music.js`): Akkord-Flächen in A = 430 Hz, Meeresrauschen, das mit dem Atem rollt, Klangtropfen, Hall; Einstellungen in `js/content.js` → `music`
 - Signaltöne harmonisch zum Grundton, und Vibration (Vibration nur, wo der Browser sie unterstützt, z. B. Android/Chrome – nicht auf iOS)
 - Tempo „Leicht“ / „Normal“, Pause, automatische Pause beim App-Wechsel, Bildschirm bleibt an (falls unterstützt)
 - Stimmungs-Check nach jeder Übung, Serie („Tage in Folge“)
@@ -37,6 +38,7 @@ scripts/build-web.mjs Kopiert die Web-App nach www/ für die nativen Apps
 index.html            Grundgerüst
 styles.css            Layout und Farben
 js/content.js         Übungen und Texte  ← hier neue Übungen eintragen
+js/music.js           Live erzeugte Chill-out-Musik
 js/engine.js          Atem-Taktgeber (Phasen, Timing)
 js/ui.js              Oberfläche, Navigation, Speicher
 sw.js                 Offline-Cache (bei Änderungen VERSION erhöhen)

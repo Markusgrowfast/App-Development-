@@ -25,7 +25,7 @@
   var NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   var CAN_VIBRATE = NATIVE || !!navigator.vibrate;
 
-  var settings = Object.assign({ sound: true, vibrate: true, binaural: true }, store.get('settings', {}));
+  var settings = Object.assign({ sound: true, vibrate: true, binaural: true, music: true }, store.get('settings', {}));
 
   // ---------- Übungen registrieren ----------
   var exercises = {};
@@ -291,7 +291,8 @@
     }
     if (ex.note) html += '<div class="panel note">' + ex.note + '</div>';
     html += '<div class="toggles">' +
-      (C.ambient ? '<label class="toggle"><input type="checkbox" data-setting="binaural"' + (settings.binaural ? ' checked' : '') + '> Klang \uD83C\uDFA7</label>' : '') +
+      (C.ambient ? '<label class="toggle"><input type="checkbox" data-setting="binaural"' + (settings.binaural ? ' checked' : '') + '> Binaural \uD83C\uDFA7</label>' : '') +
+      (C.music && window.AtemMusic ? '<label class="toggle"><input type="checkbox" data-setting="music"' + (settings.music ? ' checked' : '') + '> Musik \uD83C\uDFB5</label>' : '') +
       '<label class="toggle"><input type="checkbox" data-setting="sound"' + (settings.sound ? ' checked' : '') + '> Signaltöne</label>' +
       (CAN_VIBRATE ? '<label class="toggle"><input type="checkbox" data-setting="vibrate"' + (settings.vibrate ? ' checked' : '') + '> Vibration</label>' : '') +
       '</div>';
@@ -308,6 +309,9 @@
     var ex = withVariant(current.ex, current.variant);
     Cue.init();
     Ambient.start(Object.assign({}, C.ambient, ex.ambient));
+    if (settings.music && C.music && window.AtemMusic && Cue.ctx) {
+      AtemMusic.start(Cue.ctx, Object.assign({ base: BASE }, C.music, ex.music));
+    }
     keepAwake(true);
     var orb = $('#orb'), num = $('#orb-num');
     $('#sess-title').textContent = current.ex.title;
@@ -341,6 +345,7 @@
         if (reduceMotion) orb.style.opacity = (0.35 + 0.65 * f.level).toFixed(3);
         else orb.style.transform = 'scale(' + (0.42 + 0.58 * f.level).toFixed(4) + ')';
         Ambient.breathe(f.level);
+        if (window.AtemMusic) AtemMusic.breathe(f.level);
         var n;
         if (st.type === 'prep') n = Math.ceil(f.phaseRemaining);
         else if (ex.countdown) n = st.rounds - st.round + 1;
@@ -358,6 +363,7 @@
     if (session) session.stop();
     session = null;
     Ambient.stop(fade);
+    if (window.AtemMusic) AtemMusic.stop(fade);
     keepAwake(false);
     document.body.classList.remove('dim');
     delete document.body.dataset.phase;
@@ -365,8 +371,8 @@
 
   function togglePause() {
     if (!session) return;
-    if (session.running) { session.pause(); Ambient.pause(); $('#pause-btn').textContent = 'Weiter'; $('#phase-sub').textContent = 'Pausiert'; }
-    else { Cue.init(); session.resume(); Ambient.resume(); $('#pause-btn').textContent = 'Pause'; }
+    if (session.running) { session.pause(); Ambient.pause(); if (window.AtemMusic) AtemMusic.pause(); $('#pause-btn').textContent = 'Weiter'; $('#phase-sub').textContent = 'Pausiert'; }
+    else { Cue.init(); session.resume(); Ambient.resume(); if (window.AtemMusic) AtemMusic.resume(); $('#pause-btn').textContent = 'Pause'; }
   }
 
   var lastEntry = null;
