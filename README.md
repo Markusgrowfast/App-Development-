@@ -65,7 +65,7 @@ Die Web-App wird mit [Capacitor](https://capacitorjs.com) als native App verpack
 
 **iOS**
 - `.github/workflows/ios.yml` prüft nur, ob die App für den Simulator baut.
-- Zum Installieren auf iPhones (TestFlight/App Store) braucht es ein Apple-Developer-Konto und Signatur-Zertifikate. Bis dahin: Web-App über Safari → „Zum Home-Bildschirm“.
+- `.github/workflows/testflight.yml` signiert die App automatisch (App-Store-Connect-API-Schlüssel) und lädt sie zu TestFlight hoch – sobald die Secrets `APPSTORE_KEY_ID`, `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_P8` und `APPLE_TEAM_ID` hinterlegt sind und die App in App Store Connect angelegt ist (Bundle-ID `de.atemzeit.app`).
 
 **Lokal arbeiten**
 ```bash
